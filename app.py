@@ -13,6 +13,13 @@ number_partitioning = st.Page(
     "pages/number_partitioning/page.py",
     title="数分割問題",
     icon="✂️",
+    url_path="number_partitioning",
+)
+recommendation = st.Page(
+    "pages/recommendation/page.py",
+    title="レコメンドシステム",
+    icon="🛍️",
+    url_path="recommendation",
 )
 
 
@@ -38,6 +45,13 @@ QUBO にエンコードしてブラウザ上で解くシミュレータ集です
             "page": number_partitioning,
             "status": "✅ 実装済み",
         },
+        {
+            "name": "🛍️ レコメンドシステム",
+            "desc": "21 商品カタログから必須カテゴリ・予算制約を満たす最適カートを SA で計算します。",
+            "qubo": "minimize λ_req·Req + λ_opt·Opt + λ_budget·Budget − λ_score·Score",
+            "page": recommendation,
+            "status": "✅ 実装済み",
+        },
     ]
 
     for p in PROBLEMS:
@@ -57,7 +71,7 @@ QUBO にエンコードしてブラウザ上で解くシミュレータ集です
 pg = st.navigation(
     {
         "ホーム": [st.Page(home, title="ホーム", icon="🌡️", default=True)],
-        "問題": [number_partitioning],
+        "問題": [number_partitioning, recommendation],
     }
 )
 pg.run()
