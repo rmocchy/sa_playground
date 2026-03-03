@@ -7,6 +7,104 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pages.recommendation.items_data import Item
 
+
+DEFAULT_QUBO_CODE = '''\
+# ============================================================
+# QUBO 定式化コード — レコメンドシステム
+#
+# ルール:
+#   PARAMS 辞書でパラメータを定義し、
+#   build_qubo(items, required_categories, optional_categories,
+#              budget_target, params) で n×n QUBO 行列を返す。
+#   - items               : list[Item]  商品リスト
+#   - required_categories : list[str]   必須カテゴリ
+#   - optional_categories : list[str]   任意カテゴリ
+#   - budget_target       : float       予算上限 (円)
+#   - params              : dict        PARAMS の各キーに現在値
+# ============================================================
+
+import numpy as np
+
+PARAMS = {
+    "lambda_required": {
+        "type": "float",
+        "label": "必須カテゴリ λ (λ_req)",
+        "default": 5.0,
+        "min": 0.1,
+        "max": 20.0,
+        "step": 0.1,
+    },
+    "lambda_optional": {
+        "type": "float",
+        "label": "任意カテゴリ λ (λ_opt)",
+        "default": 5.0,
+        "min": 0.1,
+        "max": 20.0,
+        "step": 0.1,
+    },
+    "lambda_budget": {
+        "type": "float",
+        "label": "予算ペナルティ λ (×10⁻⁶)",
+        "default": 1.0,
+        "min": 0.0,
+        "max": 50.0,
+        "step": 0.5,
+    },
+    "lambda_score": {
+        "type": "float",
+        "label": "スコア重み λ (λ_score)",
+        "default": 1.0,
+        "min": 0.0,
+        "max": 10.0,
+        "step": 0.1,
+    },
+}
+
+
+def build_qubo(items, required_categories, optional_categories, budget_target, params):
+    lr  = params.get("lambda_required", 5.0)
+    lo  = params.get("lambda_optional", 5.0)
+    lb  = params.get("lambda_budget",   1.0) * 1e-6
+    ls  = params.get("lambda_score",    1.0)
+
+    Q = {}
+    def add(i, j, v):
+        Q[(i, j)] = Q.get((i, j), 0.0) + v
+
+    n = len(items)
+
+    # 必須カテゴリ: (Σ x_i - 1)^2
+    for cat in required_categories:
+        idx = [i for i, it in enumerate(items) if it.category == cat]
+        for i in idx:
+            for j in idx:
+                add(i, j, lr)
+            add(i, i, -2 * lr)
+
+    # 任意カテゴリ: 2 件以上選びにくくする
+    for cat in optional_categories:
+        idx = [i for i, it in enumerate(items) if it.category == cat]
+        for i in idx:
+            for j in idx:
+                add(i, j, lo)
+            add(i, i, -lo)
+
+    # 予算制約: (Σ price_i * x_i - budget)^2
+    for i in range(n):
+        for j in range(n):
+            add(i, j, lb * items[i].price * items[j].price)
+        add(i, i, -2 * lb * items[i].price * budget_target)
+
+    # スコア最大化
+    for i in range(n):
+        add(i, i, -ls * items[i].score)
+
+    mat = np.zeros((n, n))
+    for (i, j), v in Q.items():
+        mat[i, j] += v
+    return mat
+'''
+
 # (i, j) -> float
 QuboDict = dict[tuple[int, int], float]
 

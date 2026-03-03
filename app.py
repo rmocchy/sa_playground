@@ -35,7 +35,6 @@ QUBO にエンコードしてブラウザ上で解くシミュレータ集です
 """
     )
     st.divider()
-    st.subheader("📋 実装済み問題")
 
     PROBLEMS = [
         {

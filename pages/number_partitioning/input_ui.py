@@ -12,6 +12,7 @@ import pandas as pd
 import streamlit as st
 
 from core.sa_viz import plot_qubo_matrix
+from core.qubo_editor import render_qubo_params
 
 _PRESETS: dict[str, list[float]] = {
     "小: [3, 1, 4, 1, 5]": [3, 1, 4, 1, 5],
@@ -61,34 +62,7 @@ def render_input(
     qubo_param_values: dict = {}
     if PARAMS:
         st.subheader("🔢 QUBO パラメータ")
-        cols = st.columns(min(len(PARAMS), 3))
-        for idx, (key, spec) in enumerate(PARAMS.items()):
-            label = spec.get("label", key)
-            ptype = spec.get("type", "float")
-            default = spec.get("default", 1.0)
-            pmin = spec.get("min", 0.0)
-            pmax = spec.get("max", 10.0)
-            step = spec.get("step", 0.1 if ptype == "float" else 1)
-            col = cols[idx % len(cols)]
-            with col:
-                if ptype == "float":
-                    qubo_param_values[key] = st.slider(
-                        label,
-                        min_value=float(pmin), max_value=float(pmax),
-                        value=float(default), step=float(step),
-                        key=f"qparam_{key}",
-                    )
-                elif ptype == "int":
-                    qubo_param_values[key] = st.slider(
-                        label,
-                        min_value=int(pmin), max_value=int(pmax),
-                        value=int(default), step=int(step),
-                        key=f"qparam_{key}",
-                    )
-                else:
-                    qubo_param_values[key] = st.text_input(
-                        label, value=str(default), key=f"qparam_{key}",
-                    )
+        qubo_param_values = render_qubo_params(PARAMS, key_prefix="np", n_cols=3)
 
     # ── QUBO 行列の構築 ──────────────────────────────────────
     Q_error: str | None = None

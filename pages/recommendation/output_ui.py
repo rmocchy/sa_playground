@@ -15,85 +15,9 @@ from core.sa_viz import plot_sa_detail
 from pages.recommendation.cards import compact_card_html, item_card_html
 from pages.recommendation.items_data import Item
 
-
-# ── スコア vs 価格 散布図 ────────────────────────────────────
-def _plot_scatter(items: list[Item], best_x: np.ndarray) -> go.Figure:
-    names = [it.name for it in items]
-    prices = [it.price for it in items]
-    scores = [it.score for it in items]
-    cats = [it.category for it in items]
-    selected = ["✅ 推奨" if xi == 1 else "❌ 非推奨" for xi in best_x]
-    sizes = [22 if xi == 1 else 10 for xi in best_x]
-
-    fig = px.scatter(
-        x=prices, y=scores,
-        color=selected,
-        size=sizes,
-        hover_name=names,
-        hover_data={"カテゴリ": cats, "価格": prices, "スコア": scores},
-        title="商品マップ: スコア vs 価格",
-        labels={"x": "価格 (¥)", "y": "評価スコア", "color": "推奨状態"},
-        color_discrete_map={"✅ 推奨": "#2ecc71", "❌ 非推奨": "#bdc3c7"},
-        template="plotly_white",
-    )
-    fig.update_layout(
-        height=360,
-        margin=dict(t=50, b=40, l=50, r=30),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    )
-    return fig
-
-
-# ── カテゴリ充足チャート ─────────────────────────────────────
-def _plot_category_coverage(
-    items: list[Item],
-    best_x: np.ndarray,
-    required_cats: list[str],
-    optional_cats: list[str],
-) -> go.Figure:
-    from collections import Counter
-    sel_cats = Counter(it.category for it, xi in zip(items, best_x) if xi == 1)
-    all_cats = sorted({it.category for it in items})
-
-    counts = [sel_cats.get(c, 0) for c in all_cats]
-    colors = []
-    for c in all_cats:
-        if c in required_cats:
-            colors.append("#e74c3c" if sel_cats.get(c, 0) == 0 else "#2ecc71")
-        elif c in optional_cats:
-            colors.append("#f39c12" if sel_cats.get(c, 0) == 0 else "#3498db")
-        else:
-            colors.append("#bdc3c7")
-
-    fig = go.Figure(go.Bar(
-        x=all_cats, y=counts,
-        marker_color=colors,
-        text=counts,
-        textposition="outside",
-    ))
-    fig.update_layout(
-        title="カテゴリ別 選択数",
-        xaxis_title="カテゴリ",
-        yaxis_title="選択された商品数",
-        height=320,
-        margin=dict(t=50, b=80, l=40, r=20),
-        xaxis_tickangle=-30,
-        template="plotly_white",
-        showlegend=False,
-    )
-    fig.add_annotation(
-        text="🟢必須充足 🔴必須不足 🔵任意充足 🟡任意不足 ⬜その他",
-        xref="paper", yref="paper",
-        x=0.5, y=-0.35, showarrow=False,
-        font=dict(size=11), xanchor="center",
-    )
-    return fig
-
 # ── メイン出力 UI ────────────────────────────────────────────
 def render_output(
     items: list[Item],
-    required_cats: list[str],
-    optional_cats: list[str],
     budget: float,
     Q: np.ndarray,
     sa_params: SAParams,
@@ -179,16 +103,6 @@ def render_output(
 </div>
 """, unsafe_allow_html=True)
 
-    # ── チャート 2 列 ─────────────────────────────────────────
-    col_scatter, col_cat = st.columns(2)
-    with col_scatter:
-        st.plotly_chart(_plot_scatter(items, best_x), use_container_width=True)
-    with col_cat:
-        st.plotly_chart(
-            _plot_category_coverage(items, best_x, required_cats, optional_cats),
-            use_container_width=True,
-        )
-
     # ── SA 収束グラフ ────────────────────────────────────────
     with st.expander("📈 SA 収束グラフを表示", expanded=False):
         st.plotly_chart(
@@ -198,39 +112,3 @@ def render_output(
         c1, c2 = st.columns(2)
         c1.metric("最良エネルギー E*", f"{best_energy:.4f}")
         c2.metric("イテレーション数", f"{result['n_iter']:,}")
-
-    st.divider()
-
-    # ── 非推奨商品 (コンパクト) ──────────────────────────────
-    if not_recommended:
-        with st.expander(f"👀 今回 SA が選ばなかった商品 ({len(not_recommended)} 件)", expanded=False):
-            nr_cols = st.columns(2)
-            for idx, it in enumerate(not_recommended):
-                with nr_cols[idx % 2]:
-                    st.markdown(compact_card_html(it), unsafe_allow_html=True)
-                    st.write("")
-
-    # ── 詳細テーブル ─────────────────────────────────────────
-    with st.expander("📋 全商品の結果テーブル", expanded=False):
-        import pandas as pd
-        rows = []
-        for it, xi in zip(items, best_x):
-            rows.append({
-                "推奨": "✅" if xi == 1 else "❌",
-                "商品名": f"{it.emoji} {it.name}",
-                "カテゴリ": it.category,
-                "価格 (¥)": it.price,
-                "スコア": it.score,
-            })
-        df = pd.DataFrame(rows)
-        st.dataframe(
-            df.style.apply(
-                lambda row: [
-                    "background-color:#d4edda" if row["推奨"] == "✅"
-                    else "background-color:#f8f9fa"
-                ] * len(row),
-                axis=1,
-            ),
-            hide_index=True,
-            use_container_width=True,
-        )

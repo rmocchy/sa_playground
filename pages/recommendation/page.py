@@ -37,8 +37,6 @@ if input_result is not None:
     st.subheader("結果")
     render_output(
         items=items,
-        required_cats=required_cats,
-        optional_cats=optional_cats,
         budget=budget,
         Q=Q,
         sa_params=sa_params,
