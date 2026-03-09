@@ -2,7 +2,7 @@ PYTHON := .direnv/python-3.13.3/bin/python
 PIP    := .direnv/python-3.13.3/bin/pip
 ST     := .direnv/python-3.13.3/bin/streamlit
 
-.PHONY: run install lint fmt clean
+.PHONY: run install lint fmt clean check-ja
 
 ## アプリを起動する
 run:
