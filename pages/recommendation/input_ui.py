@@ -5,13 +5,14 @@ Handles product catalog display, condition settings, and QUBO construction.
 
 from __future__ import annotations
 
+import dimod
 import numpy as np
 import pandas as pd
 import streamlit as st
 
 from core.sa_viz import plot_qubo_matrix
 from pages.recommendation.cards import item_card_html
-from pages.recommendation.qubo import PARAMS, build_qubo_matrix
+from pages.recommendation.qubo import PARAMS, build_bqm, build_qubo_matrix
 from pages.recommendation.items_data import (
     ALL_CATEGORIES,
     DEFAULT_ITEMS,
@@ -20,13 +21,13 @@ from pages.recommendation.items_data import (
 
 def render_input(
     items: list[Item] | None = None,
-) -> tuple[list[Item], list[str], list[str], float, np.ndarray] | None:
+) -> tuple[list[Item], list[str], list[str], float, dimod.BinaryQuadraticModel, np.ndarray] | None:
     """
     Render the product catalog, condition settings, and QUBO construction UI.
 
     Returns
     -------
-    (items, required_cats, optional_cats, budget, Q_matrix)
+    (items, required_cats, optional_cats, budget, bqm, Q_matrix)
     or None on construction error.
     """
     if items is None:
@@ -121,7 +122,8 @@ def render_input(
         )
         st.caption(f"${budget:,}")
 
-    # ── Build QUBO matrix ────────────────────────────────
+    # ── Build QUBO (BQM for neal, numpy for preview) ────────────────────────────────
+    bqm = build_bqm(items, required_cats, optional_cats, budget, qubo_params)
     Q = build_qubo_matrix(items, required_cats, optional_cats, budget, qubo_params)
     n = len(items)
 
@@ -140,4 +142,4 @@ def render_input(
             df_q = pd.DataFrame(Q, index=labels, columns=labels)
             st.dataframe(df_q.style.format("{:.2f}"), use_container_width=True)
 
-    return items, required_cats, optional_cats, budget, Q
+    return items, required_cats, optional_cats, budget, bqm, Q

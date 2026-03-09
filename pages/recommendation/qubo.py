@@ -1,7 +1,8 @@
-"""Recommendation System — QUBO formulation module."""
+"""Recommendation System — QUBO formulation module (dimod)."""
 
 from __future__ import annotations
 
+import dimod
 import numpy as np
 from typing import TYPE_CHECKING
 
@@ -67,7 +68,7 @@ def formulate_recommendation_qubo(
     ----------
     items               : List of products (Item dataclass)
     required_categories : Categories that must have at least 1 item selected
-    optional_categories : Categories that are nice to have (soft reward)
+    optional_categories : Categories where selecting more than 1 item is penalised (soft at-most-one)
     budget_target       : Budget limit
     lambda_required     : Penalty strength for missing a required category
     lambda_optional     : Penalty strength for missing an optional category
@@ -86,8 +87,8 @@ def formulate_recommendation_qubo(
     n = len(items)
 
     # ── Required category constraint ───────────────────────────────
-    # Force at least 1 item to be selected per required category
-    # Expand (Σ x_i - 1)^2 and add coefficients to QUBO
+    # Soft exactly-one constraint per required category: (Σ x_i − 1)²
+    # Penalises both 0 selections and ≥2 selections.
     for cat in required_categories:
         idx = [i for i, it in enumerate(items) if it.category == cat]
         if not idx:
@@ -98,7 +99,8 @@ def formulate_recommendation_qubo(
                 add(i, j, lambda_required)
             add(i, i, -2 * lambda_required)
 
-    # For non-required categories: penalize selecting more than 1 item
+    # For optional categories: derived from λ(Σx_i - 1/2)² minus the constant λ/4.
+    # Results in Q[i,i]=0, Q[i,j]=+λ (i≠j) → cost=0 for k=0 or k=1, penalises k≥2.
     for cat in optional_categories:
         idx = [i for i, it in enumerate(items) if it.category == cat]
         if not idx:
@@ -122,16 +124,49 @@ def formulate_recommendation_qubo(
     return Q
 
 
+def build_bqm(
+    items: list["Item"],
+    required_categories: list[str],
+    optional_categories: list[str],
+    budget_target: float,
+    params: dict,
+) -> dimod.BinaryQuadraticModel:
+    """Build a dimod BinaryQuadraticModel for the recommendation problem."""
+    q_dict = formulate_recommendation_qubo(
+        items=items,
+        required_categories=required_categories,
+        optional_categories=optional_categories,
+        budget_target=budget_target,
+        lambda_required=params.get("lambda_required", 5.0),
+        lambda_optional=params.get("lambda_optional", 5.0),
+        lambda_budget=params.get("lambda_budget", 1.0),
+        lambda_score=params.get("lambda_score", 1.0),
+    )
+
+    n = len(items)
+    bqm = dimod.BinaryQuadraticModel(vartype=dimod.BINARY)
+    for i in range(n):
+        bqm.add_variable(i, 0.0)
+
+    for (i, j), v in q_dict.items():
+        if i == j:
+            bqm.add_variable(i, v)
+        elif i < j:
+            bqm.add_interaction(i, j, v)
+        else:
+            bqm.add_interaction(j, i, v)
+
+    return bqm
+
+
 def build_qubo_matrix(
     items: list["Item"],
     required_categories: list[str],
     optional_categories: list[str],
     budget_target: float,
     params: dict,
-) -> "np.ndarray":  # type: ignore[name-defined]
-    """Convert QuboDict to np.ndarray and return it."""
-    import numpy as np
-
+) -> np.ndarray:
+    """Convert QuboDict to np.ndarray and return it (kept for QUBO preview)."""
     q_dict = formulate_recommendation_qubo(
         items=items,
         required_categories=required_categories,

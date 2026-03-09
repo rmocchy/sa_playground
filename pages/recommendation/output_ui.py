@@ -1,17 +1,15 @@
-"""Recommendation System — SA execution & rich output UI."""
+"""Recommendation System — Neal SA execution & rich output UI."""
 
 from __future__ import annotations
 
-import time
-
+import dimod
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from core.sa import simulated_annealing
-from core.sa_sidebar import SAParams
-from core.sa_viz import plot_sa_detail
+from core.neal_sa import run_neal
+from core.neal_sidebar import NealParams
 from pages.recommendation.cards import compact_card_html, item_card_html
 from pages.recommendation.items_data import Item
 
@@ -19,35 +17,23 @@ from pages.recommendation.items_data import Item
 def render_output(
     items: list[Item],
     budget: float,
-    Q: np.ndarray,
-    sa_params: SAParams,
+    bqm: dimod.BinaryQuadraticModel,
+    neal_params: NealParams,
 ) -> None:
     """
-    Run SA and display results in a rich shopping-site style layout.
+    Run Neal SA and display results in a rich shopping-site style layout.
     """
-    if not sa_params.run:
+    if not neal_params.run:
         st.info("👈 Press the **Run SA** button in the sidebar.")
         return
 
-    # ── Run SA ────────────────────────────────────────
-    with st.spinner("🤖 Computing recommendations with SA…"):
-        t0 = time.perf_counter()
-        result = simulated_annealing(
-            Q=Q,
-            T_init=sa_params.T_init,
-            T_min=sa_params.T_min,
-            cooling_rate=sa_params.cooling_rate,
-            max_iter=sa_params.max_iter,
-            seed=sa_params.seed,
-            timeout_sec=sa_params.timeout_sec,
-        )
-        elapsed = time.perf_counter() - t0
+    # ── Run Neal SA ────────────────────────────────────────
+    with st.spinner("🤖 Computing recommendations with Neal SA…"):
+        result = run_neal(bqm, neal_params)
 
-    if result["timed_out"]:
-        st.warning(f"⏱ SA stopped due to timeout ({sa_params.timeout_sec:.0f}s). Showing best solution found so far.")
-
-    best_x = result["best_x"].astype(int)
-    best_energy: float = result["best_energy"]
+    best_x = result.best_x
+    best_energy: float = result.penalty
+    elapsed = result.elapsed_sec
 
     recommended = [it for it, xi in zip(items, best_x) if xi == 1]
     not_recommended = [it for it, xi in zip(items, best_x) if xi == 0]
@@ -107,12 +93,33 @@ def render_output(
 </div>
 """, unsafe_allow_html=True)
 
-    # ── SA convergence graph ──────────────────────────────────
-    with st.expander("📈 Show SA Convergence Graph", expanded=False):
-        st.plotly_chart(
-            plot_sa_detail(result["energy_history"], result["best_history"], result["temp_history"]),
-            use_container_width=True,
+    # ── Energy distribution across reads ──────────────────────────────
+    with st.expander("📊 Energy Distribution across Reads", expanded=False):
+        sorted_e = np.sort(result.all_energies)
+        colors = ["#EF553B" if e == best_energy else "#636EFA" for e in sorted_e]
+        fig_e = go.Figure(
+            go.Bar(
+                x=list(range(1, len(sorted_e) + 1)),
+                y=sorted_e,
+                marker_color=colors,
+                name="Energy per read",
+            )
         )
+        fig_e.add_hline(
+            y=best_energy,
+            line_dash="dash",
+            line_color="#EF553B",
+            annotation_text=f"Best: {best_energy:.4f}",
+            annotation_position="bottom right",
+        )
+        fig_e.update_layout(
+            title="Energy Distribution across Reads (sorted)",
+            xaxis_title="Read (sorted by energy)",
+            yaxis_title="Energy",
+            height=320,
+            margin=dict(t=60, b=40),
+        )
+        st.plotly_chart(fig_e, use_container_width=True)
         c1, c2 = st.columns(2)
         c1.metric("Best Energy E*", f"{best_energy:.4f}")
-        c2.metric("Iterations", f"{result['n_iter']:,}")
+        c2.metric("Num reads", f"{neal_params.num_reads}")
