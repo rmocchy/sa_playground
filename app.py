@@ -21,6 +21,12 @@ recommendation = st.Page(
     icon="🛍️",
     url_path="recommendation",
 )
+scheduling = st.Page(
+    "pages/scheduling/page.py",
+    title="Scheduling Optimizer",
+    icon="📅",
+    url_path="scheduling",
+)
 
 
 # ── Home page ─────────────────────
@@ -51,6 +57,13 @@ Click a problem card to open its simulator.
             "page": recommendation,
             "status": "✅ Available",
         },
+        {
+            "name": "📅 Scheduling Optimizer",
+            "desc": "Assign workers to tasks over discrete time slots — minimising makespan while meeting effort, continuity, no-multitasking and precedence constraints.",
+            "qubo": "minimize α·makespan + λ₁·Effort + λ₂·Continuity + λ₃·NoMultitask + λ₄·Blocked + λ₅·Precedence",
+            "page": scheduling,
+            "status": "✅ Available",
+        },
     ]
 
     for p in PROBLEMS:
@@ -70,7 +83,7 @@ Click a problem card to open its simulator.
 pg = st.navigation(
     {
         "Home": [st.Page(home, title="Home", icon="🌡️", default=True)],
-        "Problems": [number_partitioning, recommendation],
+        "Problems": [number_partitioning, recommendation, scheduling],
     }
 )
 pg.run()
