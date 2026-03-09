@@ -70,7 +70,7 @@ def render_input() -> tuple[list[float], np.ndarray] | None:
     c2.metric("Sum \u03a3", f"{sum(numbers):.2f}")
     c3.metric("Target group sum", f"{sum(numbers) / 2:.2f}")
 
-    with st.expander("\ud83d\udcd0 Check QUBO Matrix", expanded=False):
+    with st.expander("📐 Check QUBO Matrix", expanded=False):
         tab_heat, tab_raw = st.tabs(["Heatmap", "Raw Values"])
         labels = [f"n_{i}" for i in range(len(numbers))]
         with tab_heat:
