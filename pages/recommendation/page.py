@@ -19,6 +19,8 @@ st.markdown(
     """
 Find the best set of products from a catalog that fits your **required categories** and **budget**,  
 using QUBO × Simulated Annealing (SA).
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://drive.google.com/file/d/1Mn286V_Rbad--ZDMTUEpLL5F7X8Qokrt/view?usp=sharing)
 """
 )
 
