@@ -5,12 +5,13 @@ Handles number sequence input, QUBO parameter adjustment, and QUBO matrix constr
 
 from __future__ import annotations
 
+import dimod
 import numpy as np
 import pandas as pd
 import streamlit as st
 
 from core.sa_viz import plot_qubo_matrix
-from pages.number_partitioning.qubo import PARAMS, build_qubo
+from pages.number_partitioning.qubo import PARAMS, build_qubo, bqm_to_numpy
 
 _PRESETS: dict[str, list[float]] = {
     "Small: [3, 1, 4, 1, 5]": [3, 1, 4, 1, 5],
@@ -19,7 +20,7 @@ _PRESETS: dict[str, list[float]] = {
 }
 
 
-def render_input() -> tuple[list[float], np.ndarray] | None:
+def render_input() -> tuple[list[float], dimod.BinaryQuadraticModel] | None:
     """
     Render number sequence input, QUBO parameter input, and QUBO matrix construction.
 
@@ -60,8 +61,8 @@ def render_input() -> tuple[list[float], np.ndarray] | None:
         key="np__lam",
     )
 
-    # ── QUBO matrix construction ──────────────────────
-    Q = build_qubo(numbers, lam=lam)
+    # ── QUBO (BQM) construction ──────────────────────
+    bqm = build_qubo(numbers, lam=lam)
 
     # ── Metrics & matrix display ──────────────────────
     st.divider()
@@ -73,9 +74,10 @@ def render_input() -> tuple[list[float], np.ndarray] | None:
     with st.expander("📐 Check QUBO Matrix", expanded=False):
         tab_heat, tab_raw = st.tabs(["Heatmap", "Raw Values"])
         labels = [f"n_{i}" for i in range(len(numbers))]
+        Q_np = bqm_to_numpy(bqm)
         with tab_heat:
-            st.plotly_chart(plot_qubo_matrix(Q, var_labels=labels), use_container_width=True)
+            st.plotly_chart(plot_qubo_matrix(Q_np, var_labels=labels), use_container_width=True)
         with tab_raw:
-            st.dataframe(pd.DataFrame(Q, index=labels, columns=labels))
+            st.dataframe(pd.DataFrame(Q_np, index=labels, columns=labels))
 
-    return numbers, Q
+    return numbers, bqm

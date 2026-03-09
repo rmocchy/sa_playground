@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import streamlit as st
 
-from core.sa_sidebar import sa_sidebar
+from core.neal_sidebar import neal_sidebar
 from pages.number_partitioning.input_ui import render_input
 from pages.number_partitioning.output_ui import render_output
 
@@ -84,8 +84,8 @@ $$Q_{ii} = \lambda \cdot 4\, n_i(n_i - S), \qquad Q_{ij} = \lambda \cdot 8\, n_i
         """
     )
 
-# SA parameters (sidebar)
-sa_params = sa_sidebar()
+# Neal SA parameters (sidebar)
+neal_params = neal_sidebar()
 
 st.divider()
 
@@ -94,7 +94,7 @@ input_result = render_input()
 
 # Output UI
 if input_result is not None:
-    numbers, Q = input_result
+    numbers, bqm = input_result
     st.divider()
-    render_output(numbers, Q, sa_params)
+    render_output(numbers, bqm, neal_params)
 
