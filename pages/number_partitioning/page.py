@@ -19,6 +19,8 @@ st.markdown(
 Given a list of numbers, find a way to split them into two groups (A / B)  
 so that the sum of each group is as equal as possible.  
 The problem is encoded as QUBO and solved with Simulated Annealing (SA) in the browser.
+
+📄 QUBO implementation: [pages/number_partitioning/qubo.py](https://github.com/rmocchy/sa_playground/blob/main/pages/number_partitioning/qubo.py)
 """
 )
 

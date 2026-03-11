@@ -17,6 +17,8 @@ st.markdown(
 Assign **workers** to **tasks** across discrete **time slots** to minimise makespan,  
 while respecting effort requirements, continuity, no-multitasking and precedence constraints —  
 encoded as a QUBO problem and solved with Simulated Annealing (SA).
+
+📄 QUBO implementation: [pages/task_scheduling/qubo.py](https://github.com/rmocchy/sa_playground/blob/main/pages/task_scheduling/qubo.py)
 """
 )
 

@@ -5,3 +5,4 @@ dimod>=0.12.0
 dwave-neal>=0.6.0
 openjij>=0.11.0
 scipy>=1.5.4,<1.16
+pyqubo>=1.4.0

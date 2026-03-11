@@ -21,6 +21,8 @@ Find the best set of products from a catalog that fits your **required categorie
 using QUBO × Simulated Annealing (SA).
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://drive.google.com/file/d/1Mn286V_Rbad--ZDMTUEpLL5F7X8Qokrt/view?usp=sharing)
+
+📄 QUBO implementation: [pages/recommendation/qubo.py](https://github.com/rmocchy/sa_playground/blob/main/pages/recommendation/qubo.py)
 """
 )
 
